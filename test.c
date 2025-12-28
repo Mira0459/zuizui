@@ -33,6 +33,10 @@ void grade_distribution(struct students records[], int count,
 void sort_remediation(struct students reme[], int rcount);
 void print_remediation(struct students reme[], int rcount);
 
+void sort_top_students(struct students top[], int count);
+void print_top5(struct students top[], int count);
+
+
 int main ()
 {
     // initialize 25 element of the struct
@@ -68,6 +72,17 @@ int main ()
 
     /* ---- Print remediation students ---- */
     print_remediation(remediation, rcount);
+
+
+    /* ---- Top 5 students ---- */
+    struct students top[25];
+    for (int i = 0; i < count; i++)
+    {
+        top[i] = records[i];
+    }
+
+    sort_top_students(top, count);
+    print_top5(top, count);
 
 
 }
@@ -181,7 +196,7 @@ char convert_grade(int score)
 float class_average( struct students records[], int count)
 {
     int total = 0;
-    for ( int i = 0; i < count, i++) 
+    for ( int i = 0; i < count; i++) 
     {
         total += records[i].score;
     }
@@ -222,6 +237,75 @@ void grade_distribution(struct students records[], int count,
         }
     }
 }
+
+void sort_remediation(struct students a[], int n)
+{
+    for (int i = 0; i < n - 1; i++)
+    {
+        for (int j = 0; j < n - i - 1; j++)
+        {
+            if (a[j].score > a[j + 1].score ||
+               (a[j].score == a[j + 1].score &&
+                strcmp(a[j].name, a[j + 1].name) > 0))
+            {
+                struct students temp = a[j];
+                a[j] = a[j + 1];
+                a[j + 1] = temp;
+            }
+        }
+    }
+}
+
+void print_remediation(struct students a[], int n)
+{
+    printf("\nStudents needing remediation:\n");
+    printf("ID      Name               Score Grade\n");
+
+    for (int i = 0; i < n; i++)
+    {
+        printf("%-6s  %-18s  %3d    %c\n",
+               a[i].id,
+               a[i].name,
+               a[i].score,
+               a[i].grade);
+    }
+}
+
+void sort_top_students(struct students a[], int n)
+{
+    for (int i = 0; i < n - 1; i++)
+    {
+        for (int j = 0; j < n - i - 1; j++)
+        {
+            if (a[j].score < a[j + 1].score ||
+               (a[j].score == a[j + 1].score &&
+                strcmp(a[j].name, a[j + 1].name) > 0))
+            {
+                struct students temp = a[j];
+                a[j] = a[j + 1];
+                a[j + 1] = temp;
+            }
+        }
+    }
+}
+
+void print_top5(struct students a[], int n)
+{
+    int limit = (n < 5) ? n : 5;
+
+    printf("\nTop %d students by grade:\n", limit);
+    printf("ID      Name               Score Grade\n");
+
+    for (int i = 0; i < limit; i++)
+    {
+        printf("%-6s  %-18s  %3d    %c\n",
+               a[i].id,
+               a[i].name,
+               a[i].score,
+               a[i].grade);
+    }
+}
+
 
 
 
