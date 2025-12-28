@@ -8,8 +8,8 @@
 
 struct students
 {
-    char id [7];
-    char name [40];
+    char id[7];
+    char name[40];
     int score;
     char grade;
     int remediation;
@@ -17,169 +17,152 @@ struct students
 
 FILE *input_file, *output_file;
 
-// Validate record
-int read_record(struct students records[]); // return count
+/* ---------- FUNCTION PROTOTYPES ---------- */
+int read_record(struct students records[]);
 int valid_id(char id[]);
 int valid_name(char name[]);
-int valid_score( int score);
+int valid_score(int score);
 
-char convert_grade (int score);
+char convert_grade(int score);
 
-float class_average ( struct students records[], int count);
-void min_max ( struct students records[], int count, int *min, int *max);
+float class_average(struct students records[], int count);
+void min_max(struct students records[], int count, int *min, int *max);
 void grade_distribution(struct students records[], int count,
-                         int *A, int *B, int *C, int *D, int *F);
-                        
-void sort_remediation(struct students reme[], int rcount);
-void print_remediation(struct students reme[], int rcount);
+                        int *A, int *B, int *C, int *D, int *F);
 
-void sort_top_students(struct students top[], int count);
-void print_top5(struct students top[], int count);
+void sort_remediation(struct students a[], int n);
+void sort_top_students(struct students a[], int n);
 
+void print_remediation(struct students a[], int n);
+void print_top5(struct students a[], int n);
 
-int main ()
+void write_remediation(FILE *out, struct students a[], int n);
+void write_top5(FILE *out, struct students a[], int n);
+
+/* ---------- MAIN ---------- */
+int main(void)
 {
-    // initialize 25 element of the struct
     struct students records[25];
 
     input_file = fopen("students.txt", "r");
     output_file = fopen("report.txt", "w");
 
-    
+    if (input_file == NULL || output_file == NULL)
+    {
+        printf("File error.\n");
+        return 1;
+    }
+
     int count = read_record(records);
-    class_average(records, count);
 
-    int min,max;
-    min_max(records, count, &min, &max );
+    float avg = class_average(records, count);
 
-    int A,B,C,D,F;
+    int min, max;
+    min_max(records, count, &min, &max);
+
+    int A, B, C, D, F;
     grade_distribution(records, count, &A, &B, &C, &D, &F);
 
-    /* ---- Extract remediation students ---- */
+    /* ---------- REMEDIATION ---------- */
     struct students remediation[25];
     int rcount = 0;
 
     for (int i = 0; i < count; i++)
-    {
-        if (records[i].remediation == 1)
-        {
+        if (records[i].remediation)
             remediation[rcount++] = records[i];
-        }
-    }
 
-    /* ---- Sort remediation list ---- */
     sort_remediation(remediation, rcount);
 
-    /* ---- Print remediation students ---- */
-    print_remediation(remediation, rcount);
-
-
-    /* ---- Top 5 students ---- */
+    /* ---------- TOP STUDENTS ---------- */
     struct students top[25];
     for (int i = 0; i < count; i++)
-    {
         top[i] = records[i];
-    }
 
     sort_top_students(top, count);
+
+    /* ---------- WRITE REPORT ---------- */
+    fprintf(output_file, "===== STUDENT REPORT =====\n\n");
+    fprintf(output_file, "Total students: %d\n", count);
+    fprintf(output_file, "Class average: %.2f\n", avg);
+    fprintf(output_file, "Minimum score: %d\n", min);
+    fprintf(output_file, "Maximum score: %d\n\n", max);
+
+    fprintf(output_file, "Grade distribution:\n");
+    fprintf(output_file, "A: %d\nB: %d\nC: %d\nD: %d\nF: %d\n\n",
+            A, B, C, D, F);
+
+    write_remediation(output_file, remediation, rcount);
+    write_top5(output_file, top, count);
+
+    /* ---------- CONSOLE OUTPUT ---------- */
+    print_remediation(remediation, rcount);
     print_top5(top, count);
 
+    fclose(input_file);
+    fclose(output_file);
 
+    return 0;
 }
 
+/* ---------- READ & VALIDATE ---------- */
 int read_record(struct students records[])
 {
-    char id [7];
-    char name [40];
+    char id[7], name[40];
     int score;
-
-    valid_id(id);
-    valid_name(name);
-    valid_score(score);
-
     int count = 0;
 
-    while
-    ( count < 25 &&
-        fscanf( input_file, "%6s %39s %d", 
-        id, 
-        name, 
-        &score ) == 3)
+    while (count < 25 &&
+           fscanf(input_file, "%6s %39s %d", id, name, &score) == 3)
     {
-        if ( valid_id(id) && valid_name(name) && valid_score(score)) {
-
-            // store record
-            strcpy ( records[count].id, id);
-            strcpy ( records[count].name, name);
+        if (valid_id(id) && valid_name(name) && valid_score(score))
+        {
+            strcpy(records[count].id, id);
+            strcpy(records[count].name, name);
             records[count].score = score;
-
-            //convert grade, check score
             records[count].grade = convert_grade(score);
             records[count].remediation = (score < 50);
-
             count++;
         }
         else
         {
             printf("Invalid record skipped: %s %s %d\n", id, name, score);
         }
-        
     }
-
     return count;
 }
 
-/* ---------- VALIDATION FUNCTIONS ---------- */
-
+/* ---------- VALIDATION ---------- */
 int valid_id(char id[])
 {
-    int i; // order of char
-
-    // Check if 1st and 2nd letter is char
-    if( strlen(id) != 6){
+    // Format: S10001 (1 letter + 5 digits)
+    if (strlen(id) != 6)
         return 0;
-    }
-    if ( !isalpha(id[0]) || !isalpha(id[1])) {
-        return 0;
-    }
 
-    //Check if the rest is number
-    for ( int i = 2; i < 6; i++) {
-        if( !isdigit(id[i])) {
+    if (!isalpha(id[0]))
+        return 0;
+
+    for (int i = 1; i < 6; i++)
+        if (!isdigit(id[i]))
             return 0;
-        }
-    }
 
     return 1;
-    
 }
+
 
 int valid_name(char name[])
 {
-    // Reject number in name
-
-    int len = strlen(name);
-    for ( int i = 0; i < len; i++) {
-        if (!isalpha(name[i]) && name[i] != '_') {
+    for (int i = 0; name[i]; i++)
+        if (!isalpha(name[i]) && name[i] != '_')
             return 0;
-        }
-    }
-
     return 1;
 }
 
 int valid_score(int score)
 {
-    if( score < 0 || score > 100)
-    {
-        return 0;
-    }
-
-    return 1;
+    return (score >= 0 && score <= 100);
 }
 
-/* ---------- DERIVED FIELDS ---------- */
-
+/* ---------- DERIVED ---------- */
 char convert_grade(int score)
 {
     if (score >= 80) return 'A';
@@ -189,40 +172,30 @@ char convert_grade(int score)
     return 'F';
 }
 
-
-
 /* ---------- ANALYTICS ---------- */
-
-float class_average( struct students records[], int count)
+float class_average(struct students records[], int count)
 {
-    int total = 0;
-    for ( int i = 0; i < count; i++) 
-    {
-        total += records[i].score;
-    }
+    int sum = 0;
+    for (int i = 0; i < count; i++)
+        sum += records[i].score;
 
-    float total = total / count;
+    return (float)sum / count;
 }
 
-void min_max ( struct students records[], int count, int *min, int *max)
+void min_max(struct students records[], int count, int *min, int *max)
 {
-    *min = records[0].score;
-    *max = records[0].score;
+    *min = *max = records[0].score;
 
-    for ( int i = 0; i < count; i++)
+    for (int i = 1; i < count; i++)
     {
-        if (records[i].score < *min)
-            *min = records[i].score;
-
-        if (records[i].score > *max)
-            *max = records[i].score;
+        if (records[i].score < *min) *min = records[i].score;
+        if (records[i].score > *max) *max = records[i].score;
     }
 }
 
 void grade_distribution(struct students records[], int count,
-                         int *A, int *B, int *C, int *D, int *F)
+                        int *A, int *B, int *C, int *D, int *F)
 {
-    /* initialize counters */
     *A = *B = *C = *D = *F = 0;
 
     for (int i = 0; i < count; i++)
@@ -238,12 +211,11 @@ void grade_distribution(struct students records[], int count,
     }
 }
 
+/* ---------- SORTING ---------- */
 void sort_remediation(struct students a[], int n)
 {
     for (int i = 0; i < n - 1; i++)
-    {
         for (int j = 0; j < n - i - 1; j++)
-        {
             if (a[j].score > a[j + 1].score ||
                (a[j].score == a[j + 1].score &&
                 strcmp(a[j].name, a[j + 1].name) > 0))
@@ -252,31 +224,12 @@ void sort_remediation(struct students a[], int n)
                 a[j] = a[j + 1];
                 a[j + 1] = temp;
             }
-        }
-    }
-}
-
-void print_remediation(struct students a[], int n)
-{
-    printf("\nStudents needing remediation:\n");
-    printf("ID      Name               Score Grade\n");
-
-    for (int i = 0; i < n; i++)
-    {
-        printf("%-6s  %-18s  %3d    %c\n",
-               a[i].id,
-               a[i].name,
-               a[i].score,
-               a[i].grade);
-    }
 }
 
 void sort_top_students(struct students a[], int n)
 {
     for (int i = 0; i < n - 1; i++)
-    {
         for (int j = 0; j < n - i - 1; j++)
-        {
             if (a[j].score < a[j + 1].score ||
                (a[j].score == a[j + 1].score &&
                 strcmp(a[j].name, a[j + 1].name) > 0))
@@ -285,27 +238,44 @@ void sort_top_students(struct students a[], int n)
                 a[j] = a[j + 1];
                 a[j + 1] = temp;
             }
-        }
-    }
+}
+
+/* ---------- OUTPUT ---------- */
+void print_remediation(struct students a[], int n)
+{
+    printf("\nStudents needing remediation:\n");
+    printf("ID      Name               Score Grade\n");
+    for (int i = 0; i < n; i++)
+        printf("%-6s  %-18s  %3d    %c\n",
+               a[i].id, a[i].name, a[i].score, a[i].grade);
 }
 
 void print_top5(struct students a[], int n)
 {
     int limit = (n < 5) ? n : 5;
-
     printf("\nTop %d students by grade:\n", limit);
     printf("ID      Name               Score Grade\n");
-
     for (int i = 0; i < limit; i++)
-    {
         printf("%-6s  %-18s  %3d    %c\n",
-               a[i].id,
-               a[i].name,
-               a[i].score,
-               a[i].grade);
-    }
+               a[i].id, a[i].name, a[i].score, a[i].grade);
 }
 
+void write_remediation(FILE *out, struct students a[], int n)
+{
+    fprintf(out, "Students needing remediation:\n");
+    fprintf(out, "ID      Name               Score Grade\n");
+    for (int i = 0; i < n; i++)
+        fprintf(out, "%-6s  %-18s  %3d    %c\n",
+                a[i].id, a[i].name, a[i].score, a[i].grade);
+    fprintf(out, "\n");
+}
 
-
-
+void write_top5(FILE *out, struct students a[], int n)
+{
+    int limit = (n < 5) ? n : 5;
+    fprintf(out, "Top %d students by grade:\n", limit);
+    fprintf(out, "ID      Name               Score Grade\n");
+    for (int i = 0; i < limit; i++)
+        fprintf(out, "%-6s  %-18s  %3d    %c\n",
+                a[i].id, a[i].name, a[i].score, a[i].grade);
+}
